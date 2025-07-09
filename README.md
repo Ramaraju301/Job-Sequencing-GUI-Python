@@ -1,4 +1,6 @@
 # Job-Sequencing-GUI-Python
+
+
 # 📊 Job Sequencing GUI Tool (Oct–Nov 2024)
 
 A user-friendly Python-based GUI tool for visualizing and comparing different **job scheduling rules** in industrial systems. Built using Tkinter, it generates random job data and allows users to apply six classic sequencing rules — with results saved directly to Excel.
