@@ -1,0 +1,145 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import random
+import openpyxl
+from openpyxl import Workbook
+import os
+
+# Function to generate random PTs
+def generate_processing_times(num_jobs, case):
+    if case == 1:
+        return [random.randint(2, 10) for _ in range(num_jobs)]
+    elif case == 2:
+        return [random.randint(2, 50) for _ in range(num_jobs)]
+    elif case == 3:
+        return [random.randint(2, 100) for _ in range(num_jobs)]
+
+# Function to generate random due dates
+def generate_due_dates(processing_times, case):
+    total_processing_time = sum(processing_times)
+    if case == 1:
+        min_due = int(total_processing_time * 0.3)
+        max_due = int(total_processing_time * 0.9)
+    elif case == 2:
+        min_due = int(total_processing_time * 0.5)
+        max_due = int(total_processing_time * 1.1)
+    return [random.randint(min_due, max_due) for _ in range(len(processing_times))]
+
+# Sequencing rules
+def fcfs(processing_times, due_dates):
+    return list(range(len(processing_times)))
+
+def spt(processing_times, due_dates):
+    return sorted(range(len(processing_times)), key=lambda i: processing_times[i])
+
+def lpt(processing_times, due_dates):
+    return sorted(range(len(processing_times)), key=lambda i: -processing_times[i])
+
+def smallest_slack(processing_times, due_dates):
+    slack_times = [due_dates[i] - processing_times[i] for i in range(len(processing_times))]
+    return sorted(range(len(processing_times)), key=lambda i: slack_times[i])
+
+def smallest_criticality_ratio(processing_times, due_dates):
+    criticality_ratios = [due_dates[i] / processing_times[i] for i in range(len(processing_times))]
+    return sorted(range(len(processing_times)), key=lambda i: criticality_ratios[i])
+
+def random_order(processing_times, due_dates):
+    order = list(range(len(processing_times)))
+    random.shuffle(order)
+    return order
+
+# Apply sequencing rule and display result, and save to Excel
+def apply_sequencing_rule():
+    try:
+        num_jobs = int(num_jobs_entry.get())
+        proc_case = int(process_case_var.get())
+        due_case = int(due_case_var.get())
+        rule = rule_var.get()
+        
+        # Generate processing times and due dates
+        processing_times = generate_processing_times(num_jobs, proc_case)
+        due_dates = generate_due_dates(processing_times, due_case)
+
+        # Choose sequencing rule
+        if rule == "FCFS":
+            order = fcfs(processing_times, due_dates)
+        elif rule == "SPT":
+            order = spt(processing_times, due_dates)
+        elif rule == "LPT":
+            order = lpt(processing_times, due_dates)
+        elif rule == "Smallest Slack":
+            order = smallest_slack(processing_times, due_dates)
+        elif rule == "Smallest Criticality Ratio":
+            order = smallest_criticality_ratio(processing_times, due_dates)
+        elif rule == "Random":
+            order = random_order(processing_times, due_dates)
+        
+        # Display the results
+        result_text = "Job\tProcessing Time\tDue Date\n"
+        for i in order:
+            result_text += f"{i+1}\t{processing_times[i]}\t\t{due_dates[i]}\n"
+        
+        result_label.config(text=result_text)
+
+        # Save results to Excel
+        file_path = r"D:\pie project\Book2.xlsx"
+        
+        # Check if the file exists; if not, create it
+        if os.path.exists("D:\pie project\Book2.xlsx"):
+            workbook = openpyxl.load_workbook("D:\pie project\Book2.xlsx")
+        else:
+            workbook = Workbook()
+        
+        sheet = workbook.active
+        sheet.title = "Job Sequencing Results"
+        
+        # Write headers if the sheet is empty
+        if sheet.max_row == 1 and sheet.max_column == 1:
+            sheet.append(["Job", "Processing Time", "Due Date", "Sequencing Rule"])
+
+        # Write the results to the Excel sheet
+        for i in order:
+            sheet.append([i+1, processing_times[i], due_dates[i], rule])
+        
+        # Save the workbook
+        workbook.save(file_path)
+        messagebox.showinfo("Success", f"Data saved to {file_path}")
+
+    except ValueError:
+        result_label.config(text="Please enter valid input.")
+
+# GUI
+root = tk.Tk()
+root.title("Job Sequencing Tool")
+
+# Number of jobs
+tk.Label(root, text="Number of Jobs:").grid(row=0, column=0, sticky="E")
+num_jobs_entry = tk.Entry(root)
+num_jobs_entry.grid(row=0, column=1)
+
+# Processing time case
+tk.Label(root, text="Processing Time Case:").grid(row=1, column=0, sticky="E")
+process_case_var = tk.IntVar(value=1)
+ttk.Radiobutton(root, text="Case 1 (2-10)", variable=process_case_var, value=1).grid(row=1, column=1, sticky="w")
+ttk.Radiobutton(root, text="Case 2 (2-50)", variable=process_case_var, value=2).grid(row=1, column=2, sticky="w")
+ttk.Radiobutton(root, text="Case 3 (2-100)", variable=process_case_var, value=3).grid(row=1, column=3, sticky="w")
+
+# Due date case
+tk.Label(root, text="Due Date Case:").grid(row=2, column=0, sticky="E")
+due_case_var = tk.IntVar(value=1)
+ttk.Radiobutton(root, text="Case 1 (0.3-0.9 T)", variable=due_case_var, value=1).grid(row=2, column=1, sticky="w")
+ttk.Radiobutton(root, text="Case 2 (0.5-1.1 T)", variable=due_case_var, value=2).grid(row=2, column=2, sticky="w")
+
+# Sequencing rule
+tk.Label(root, text="Sequencing Rule:").grid(row=3, column=0, sticky="E")
+rule_var = tk.StringVar(value="FCFS")
+ttk.Combobox(root, textvariable=rule_var, values=["FCFS", "SPT", "LPT", "Smallest Slack", "Smallest Criticality Ratio", "Random"]).grid(row=3, column=1)
+
+# Apply button
+tk.Button(root, text="Apply Sequencing Rule", command=apply_sequencing_rule).grid(row=4, column=1)
+
+# Result display
+result_label = tk.Label(root, text="this is result", justify="left", font=("Courier", 10))
+result_label.grid(row=5, column=0, columnspan=4, sticky="w")
+
+root.mainloop()
